@@ -1,6 +1,6 @@
 module Numeric.MixtureModel.Beta where
                               
-import Debug.Trace       
+import           Data.Function (on)       
 import qualified Data.Vector as V
 
 import           Data.Number.LogFloat hiding (realToFrac, isInfinite)
@@ -22,8 +22,6 @@ type Samples = V.Vector Sample                   -- length == N
 type Assignments = V.Vector ComponentIdx         -- length == N
 type Params = V.Vector BetaParam                 -- length == K     
       
-tr x = traceShow x x     
-
 beta :: Double -> Double -> LogFloat
 beta a b = logToLogFloat $ logBeta a b
 
