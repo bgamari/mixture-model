@@ -4,7 +4,7 @@ import           Data.Function (on)
 import qualified Data.Vector as V
 
 import           Data.Number.LogFloat hiding (realToFrac, isInfinite)
-import           Statistics.Math (logBeta)
+import           Numeric.SpecFunctions (logBeta)
 import           Statistics.Sample (meanVarianceUnb)
        
 import           Data.Random                 
