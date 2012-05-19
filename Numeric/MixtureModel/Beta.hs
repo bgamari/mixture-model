@@ -1,4 +1,26 @@
-module Numeric.MixtureModel.Beta where
+module Numeric.MixtureModel.Beta ( -- * General data types
+                                   Sample
+                                 , SampleIdx
+                                 , Samples
+                                 , ComponentIdx
+                                 , Assignments
+                                 -- * Beta parameters
+                                 , BetaParam
+                                 , Params
+                                 , paramFromMoments
+                                 , paramToMoments
+                                 , paramsFromAssignments
+                                 -- * Beta distribution
+                                 , Prob
+                                 , betaProb
+                                 -- * Gibbs sampling
+                                 , updateAssignments
+                                 , updateAssignments'
+                                 -- * Likelihood
+                                 , likelihood
+                                 -- * Classification
+                                 , classify
+                                 ) where
                               
 import           Data.Function (on)       
 import qualified Data.Vector as V
