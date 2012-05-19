@@ -16,4 +16,4 @@ cabal-version:       >=1.8
 
 library
   exposed-modules:     Numeric.MixtureModel.Beta
-  build-depends:       base ==4.5.*, vector ==0.9.*, statistics ==0.10.*, repa ==3.1.*
+  build-depends:       base ==4.5.*, vector ==0.9.*, statistics ==0.10.*, repa ==3.1.*, logfloat, primitive, random-fu
