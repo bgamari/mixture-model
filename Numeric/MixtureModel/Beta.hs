@@ -82,3 +82,8 @@ likelihood samples params assignments =
   $ V.map (\(k,x)->betaProb (params V.! k) x)
   $ V.zip assignments samples
 
+-- | Maximum likelihood classification
+classify :: Params -> Sample -> ComponentIdx
+classify params x =
+  fst $ V.maximumBy (compare `on` \(_,p)->betaProb p x) $ V.indexed params
+
