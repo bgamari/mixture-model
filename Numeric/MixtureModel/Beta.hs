@@ -25,6 +25,8 @@ type Params = V.Vector BetaParam                 -- length == K
 beta :: Double -> Double -> LogFloat
 beta a b = logToLogFloat $ logBeta a b
 
+-- | `betaProb (a,b) x` is the probability of `x` under Beta
+-- distribution defined by parameters `a` and `b`
 betaProb :: BetaParam -> Sample -> Prob
 betaProb (a,b) x = 1/beta a b * logFloat (x**(a-1)) * logFloat ((1-x)**(b-1))
 
@@ -35,6 +37,7 @@ paramFromMoments (xbar,v)
   | otherwise  = (xbar * c, (1 - xbar) * c)
   where c = xbar * (1 - xbar) / v - 1
   
+-- | 
 paramToMoments :: BetaParam -> (Double, Double)
 paramToMoments (a,b) =
   let mean = a / (a+b)
@@ -68,14 +71,17 @@ drawAssignment params x =
                      $ map (\(p,k)->(realToFrac $ p / sum probs :: Double, k))
                      $ zip probs [0..]
   
+-- | Sample assignments for samples under given parameters
 updateAssignments' :: Samples -> Int -> Params -> RVar Assignments
 updateAssignments' samples ncomps params =
   V.mapM (drawAssignment params) samples
 
+-- | Gibbs update of sample assignments
 updateAssignments :: Samples -> Int -> Assignments -> RVar Assignments
 updateAssignments samples ncomps =
   updateAssignments' samples ncomps . paramsFromAssignments samples ncomps
 
+-- | Likelihood of samples assignments under given model parameters
 likelihood :: Samples -> Params -> Assignments -> Prob
 likelihood samples params assignments =
   product $ V.toList
