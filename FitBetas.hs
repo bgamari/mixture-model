@@ -8,11 +8,13 @@ import           Data.Random.Distribution.Beta
 import           Data.Random.Distribution.Categorical
 import System.Random.MWC (create)                 
 
-import Numeric.MixtureModel.Beta hiding (beta)
+import Numeric.MixtureModel.Beta
 
 import "data-accessor" Data.Accessor       
 import Graphics.Rendering.Chart
 import Graphics.Rendering.Chart.Plot.Histogram       
+import Data.Colour
+import Data.Colour.Names       
        
 priors = [ paramFromMoments (0.1, 0.01)
          , paramFromMoments (0.9, 0.01)
@@ -34,6 +36,7 @@ functionPlot :: (RealFrac x, Enum x) => Int -> (x, x) -> (x -> y) -> Plot x y
 functionPlot n (a,b) f =
   let xs = [a,a+(b-a)/realToFrac n..b]
   in toPlot $ plot_lines_values ^= [map (\x->(x,f x)) xs]
+            $ plot_lines_style .> line_color ^= opaque red
             $ defaultPlotLines
 
 main = do
@@ -54,10 +57,10 @@ main = do
   print $ V.map paramToMoments $ paramsFromAssignments samples 2 assignments
 
   let params = paramsFromAssignments samples 2 assignments
-      dist x = sum $ tr $ map (\p->betaProb p x) $ V.toList params
+      dist x = sum $ map (\p->betaProb p x) $ V.toList params
       g = (*0.01) . realToFrac . dist :: Double -> Double
-  let layout = layout1_plots ^= [ Right $ functionPlot 100 (0,0.99) g
-                                , Right $ histPlot samples
+  let layout = layout1_plots ^= [ Right $ histPlot samples
+                                , Right $ functionPlot 100 (0,0.99) g
                                 ]
              $ defaultLayout1
   renderableToPDFFile (toRenderable layout) 640 480 "hi.pdf"
