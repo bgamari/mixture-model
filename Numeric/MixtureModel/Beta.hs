@@ -59,7 +59,7 @@ paramFromMoments (xbar,v)
   | otherwise  = (xbar * c, (1 - xbar) * c)
   where c = xbar * (1 - xbar) / v - 1
   
--- | 
+-- | Mean and variance of the given beta parameter
 paramToMoments :: BetaParam -> (Double, Double)
 paramToMoments (a,b) =
   let mean = a / (a+b)
