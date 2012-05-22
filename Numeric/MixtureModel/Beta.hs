@@ -94,14 +94,14 @@ drawAssignment params x =
                      $ zip probs [0..]
   
 -- | Sample assignments for samples under given parameters
-updateAssignments' :: Samples -> Int -> Params -> RVar Assignments
-updateAssignments' samples ncomps params =
+updateAssignments' :: Samples -> Params -> RVar Assignments
+updateAssignments' samples params =
   V.mapM (drawAssignment params) samples
 
 -- | Gibbs update of sample assignments
 updateAssignments :: Samples -> Int -> Assignments -> RVar Assignments
 updateAssignments samples ncomps =
-  updateAssignments' samples ncomps . paramsFromAssignments samples ncomps
+  updateAssignments' samples . paramsFromAssignments samples ncomps
 
 -- | Likelihood of samples assignments under given model parameters
 likelihood :: Samples -> Params -> Assignments -> Prob
