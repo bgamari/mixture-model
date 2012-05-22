@@ -3,6 +3,7 @@ import Data.Number.LogFloat                 hiding (realToFrac)
 import Data.Random.Lift
 import qualified Data.Vector as V                
 import Control.Applicative                
+import Control.Monad                
 import           Data.Random                 
 import           Data.Random.Distribution.Beta
 import           Data.Random.Distribution.Categorical
@@ -16,12 +17,10 @@ import Graphics.Rendering.Chart.Plot.Histogram
 import Data.Colour
 import Data.Colour.Names       
        
-priors = [ paramFromMoments (0.1, 0.01)
-         , paramFromMoments (0.9, 0.01)
+priors :: [(Weight, BetaParam)]       
+priors = [ (0.5, paramFromMoments (0.1, 0.01))
+         , (0.5, paramFromMoments (0.9, 0.01))
          ]
-
-weights :: [(Double, ComponentIdx)]       
-weights = [(0.5, 0), (0.5, 1)]
 
 readSamples :: FilePath -> IO (V.Vector Sample)
 readSamples fname =
@@ -41,31 +40,51 @@ functionPlot n (a,b) f =
 
 main = do
   mwc <- create
-  [fname] <- getArgs
-  samples <- readSamples fname
-  assignments0 <- sampleFrom mwc $ updateAssignments' samples 2 (V.fromList priors)
+
+  --[fname] <- getArgs
+  --samples <- readSamples fname
+
+  test <- V.fromList <$> sampleFrom mwc (testData 2000 dists)
+  let samples = V.map snd test
+
+  assignments0 <- sampleFrom mwc $ updateAssignments' samples (V.fromList priors)
   print $ V.map paramToMoments
         $ paramsFromAssignments samples 2 assignments0
   let f :: Assignments -> RVarT IO Assignments
       f a = do
         a' <- lift $ updateAssignments samples 2 a
-        let params = paramsFromAssignments samples 2 a'
+        let params = estimateWeights a' $ paramsFromAssignments samples 2 a'
         lift $ print (logFromLogFloat $ likelihood samples params a' :: Double)
         return a'
   assignments <- sampleFrom mwc
                  $ replicateM' 100 f assignments0
   print $ V.map paramToMoments $ paramsFromAssignments samples 2 assignments
 
-  let params = paramsFromAssignments samples 2 assignments
-      dist x = sum $ map (\p->betaProb p x) $ V.toList params
-      g = (*0.01) . realToFrac . dist :: Double -> Double
+  let params = estimateWeights assignments
+               $ paramsFromAssignments samples 2 assignments
+      dist x = sum $ map (\(w,p)->w * realToFrac (betaProb p x)) $ V.toList params
   let layout = layout1_plots ^= [ Right $ histPlot samples
-                                , Right $ functionPlot 100 (0,0.99) g
+                                , Right $ functionPlot 100 (0.01,0.99) dist
                                 ]
              $ defaultLayout1
+  print params
   renderableToPDFFile (toRenderable layout) 640 480 "hi.pdf"
 
 replicateM' :: Monad m => Int -> (a -> m a) -> a -> m a
 replicateM' n f a | n < 1 = error "Invalid count"
 replicateM' 1 f a = f a
 replicateM' n f a = f a >>= replicateM' (n-1) f
+
+dists :: [(Weight, BetaParam)]
+dists = [ (0.4, paramFromMoments (0.2, 0.05))
+        , (0.6, paramFromMoments (0.8, 0.01))
+        ]
+
+secondM :: Monad m => (b -> m c) -> (a,b) -> m (a,c)
+secondM f (a,b) = f b >>= \c->return (a,c)
+
+testData :: Int -> [(Weight, BetaParam)] -> RVar [(ComponentIdx, Sample)]
+testData n dists = do
+  comps <- replicateM n $ categorical
+                        $ map (\(n,(w,d))->(w,(n,d))) $ zip [0..] dists
+  forM comps $ secondM (uncurry beta)

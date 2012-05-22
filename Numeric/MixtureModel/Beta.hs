@@ -4,8 +4,10 @@ module Numeric.MixtureModel.Beta ( -- * General data types
                                  , Samples
                                  , ComponentIdx
                                  , Assignments
+                                 , Weight
                                  -- * Beta parameters
                                  , BetaParam
+                                 , BetaParams
                                  , Params
                                  , paramFromMoments
                                  , paramToMoments
@@ -14,6 +16,7 @@ module Numeric.MixtureModel.Beta ( -- * General data types
                                  , Prob
                                  , betaProb
                                  -- * Gibbs sampling
+                                 , estimateWeights
                                  , updateAssignments
                                  , updateAssignments'
                                  -- * Likelihood
@@ -24,6 +27,7 @@ module Numeric.MixtureModel.Beta ( -- * General data types
                               
 import           Data.Function (on)       
 import qualified Data.Vector as V
+import qualified Data.Vector.Mutable as MV
 
 import           Data.Number.LogFloat hiding (realToFrac, isInfinite)
 import           Numeric.SpecFunctions (logBeta)
@@ -36,13 +40,15 @@ type Prob = LogFloat
 type Sample = Double
 type SampleIdx = Int     
 type ComponentIdx = Int     
+type Weight = Double     
 type BetaParam = (Double, Double)
 
 -- k refers to number of components
 -- N refers to number of samples
 type Samples = V.Vector Sample                   -- length == N
 type Assignments = V.Vector ComponentIdx         -- length == N
-type Params = V.Vector BetaParam                 -- length == K     
+type BetaParams = V.Vector BetaParam             -- length == K     
+type Params = V.Vector (Weight, BetaParam)       -- length == K     
       
 beta :: Double -> Double -> LogFloat
 beta a b = logToLogFloat $ logBeta a b
@@ -77,14 +83,14 @@ paramFromAssignments samples assignments k =
   paramFromSamples $ V.map snd $ V.filter (\(k',_)->k==k') $ V.zip assignments samples
 
 -- | Beta parameters for all components given samples and their component assignments
-paramsFromAssignments :: Samples -> Int -> Assignments -> Params
+paramsFromAssignments :: Samples -> Int -> Assignments -> BetaParams
 paramsFromAssignments samples ncomps assignments =
   V.fromList $ map (paramFromAssignments samples assignments) [0..ncomps-1]
 
 -- | Draw a new assignment for a sample given beta parameters
 drawAssignment :: Params -> Sample -> RVar ComponentIdx
 drawAssignment params x =
-  let probs = map (\p->betaProb p x) $ V.toList params
+  let probs = map (\(w,p)->realToFrac w * betaProb p x) $ V.toList params
       lfIsInfinite :: LogFloat -> Bool
       lfIsInfinite = isInfinite . (fromLogFloat :: LogFloat -> Double)
   in case filter (lfIsInfinite . fst) $ zip probs [0..] of
@@ -93,6 +99,16 @@ drawAssignment params x =
                      $ map (\(p,k)->(realToFrac $ p / sum probs :: Double, k))
                      $ zip probs [0..]
   
+-- | Estimate the component weights of a given set of parameters
+estimateWeights :: Assignments -> BetaParams -> Params
+estimateWeights assignments params =
+  let counts = V.foldl (\accum k -> V.modify (\v->MV.read v k >>= (MV.write v k . (+1))) accum)
+                       (V.map (const 0) params)
+                       assignments
+      norm = realToFrac $ V.length assignments
+      weights = V.map (\n->realToFrac n / norm) counts
+  in V.zip weights params
+
 -- | Sample assignments for samples under given parameters
 updateAssignments' :: Samples -> Params -> RVar Assignments
 updateAssignments' samples params =
@@ -100,18 +116,26 @@ updateAssignments' samples params =
 
 -- | Gibbs update of sample assignments
 updateAssignments :: Samples -> Int -> Assignments -> RVar Assignments
-updateAssignments samples ncomps =
-  updateAssignments' samples . paramsFromAssignments samples ncomps
+updateAssignments samples ncomps assignments =
+  updateAssignments' samples 
+  $ estimateWeights assignments 
+  $ paramsFromAssignments samples ncomps assignments
 
 -- | Likelihood of samples assignments under given model parameters
 likelihood :: Samples -> Params -> Assignments -> Prob
 likelihood samples params assignments =
-  product $ V.toList
-  $ V.map (\(k,x)->betaProb (params V.! k) x)
-  $ V.zip assignments samples
+    product ( V.toList
+            $ V.map (\(k,x)->betaProb (snd $ params V.! k) x)
+            $ V.zip assignments samples
+            )
+  * product ( V.toList
+            $ V.map (\k->realToFrac $ fst $ params V.! k) assignments
+            )
 
 -- | Maximum likelihood classification
 classify :: Params -> Sample -> ComponentIdx
 classify params x =
-  fst $ V.maximumBy (compare `on` \(_,p)->betaProb p x) $ V.indexed params
+  fst
+  $ V.maximumBy (compare `on` \(_,(w,p))->realToFrac w * betaProb p x)
+  $ V.indexed params
 
