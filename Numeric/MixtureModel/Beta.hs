@@ -124,13 +124,10 @@ updateAssignments samples ncomps assignments =
 -- | Likelihood of samples assignments under given model parameters
 likelihood :: Samples -> Params -> Assignments -> Prob
 likelihood samples params assignments =
-    product ( V.toList
-            $ V.map (\(k,x)->betaProb (snd $ params V.! k) x)
-            $ V.zip assignments samples
-            )
-  * product ( V.toList
-            $ V.map (\k->realToFrac $ fst $ params V.! k) assignments
-            )
+    V.product ( V.map (\(k,x)->betaProb (snd $ params V.! k) x)
+              $ V.zip assignments samples
+              )
+  * V.product (V.map (\k->realToFrac $ fst $ params V.! k) assignments)
 
 -- | Maximum likelihood classification
 classify :: Params -> Sample -> ComponentIdx
