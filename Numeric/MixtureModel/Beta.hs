@@ -8,7 +8,7 @@ module Numeric.MixtureModel.Beta ( -- * General data types
                                  -- * Beta parameters
                                  , BetaParam
                                  , BetaParams
-                                 , Params
+                                 , ComponentParams
                                  , paramFromMoments
                                  , paramToMoments
                                  , paramsFromAssignments
@@ -45,10 +45,10 @@ type BetaParam = (Double, Double)
 
 -- k refers to number of components
 -- N refers to number of samples
-type Samples = V.Vector Sample                   -- length == N
-type Assignments = V.Vector ComponentIdx         -- length == N
-type BetaParams = V.Vector BetaParam             -- length == K     
-type Params = V.Vector (Weight, BetaParam)       -- length == K     
+type Samples = V.Vector Sample                         -- length == N
+type Assignments = V.Vector ComponentIdx               -- length == N
+type BetaParams = V.Vector BetaParam                   -- length == K     
+type ComponentParams = V.Vector (Weight, BetaParam)      -- length == K     
       
 beta :: Double -> Double -> LogFloat
 beta a b = logToLogFloat $ logBeta a b
@@ -88,7 +88,7 @@ paramsFromAssignments samples ncomps assignments =
   V.fromList $ map (paramFromAssignments samples assignments) [0..ncomps-1]
 
 -- | Draw a new assignment for a sample given beta parameters
-drawAssignment :: Params -> Sample -> RVar ComponentIdx
+drawAssignment :: ComponentParams -> Sample -> RVar ComponentIdx
 drawAssignment params x =
   let probs = map (\(w,p)->realToFrac w * betaProb p x) $ V.toList params
       lfIsInfinite :: LogFloat -> Bool
@@ -100,7 +100,7 @@ drawAssignment params x =
                      $ zip probs [0..]
   
 -- | Estimate the component weights of a given set of parameters
-estimateWeights :: Assignments -> BetaParams -> Params
+estimateWeights :: Assignments -> BetaParams -> ComponentParams
 estimateWeights assignments params =
   let counts = V.foldl (\accum k -> V.modify (\v->MV.read v k >>= (MV.write v k . (+1))) accum)
                        (V.map (const 0) params)
@@ -110,7 +110,7 @@ estimateWeights assignments params =
   in V.zip weights params
 
 -- | Sample assignments for samples under given parameters
-updateAssignments' :: Samples -> Params -> RVar Assignments
+updateAssignments' :: Samples -> ComponentParams -> RVar Assignments
 updateAssignments' samples params =
   V.mapM (drawAssignment params) samples
 
@@ -122,7 +122,7 @@ updateAssignments samples ncomps assignments =
   $ paramsFromAssignments samples ncomps assignments
 
 -- | Likelihood of samples assignments under given model parameters
-likelihood :: Samples -> Params -> Assignments -> Prob
+likelihood :: Samples -> ComponentParams -> Assignments -> Prob
 likelihood samples params assignments =
     V.product ( V.map (\(k,x)->betaProb (snd $ params V.! k) x)
               $ V.zip assignments samples
@@ -130,7 +130,7 @@ likelihood samples params assignments =
   * V.product (V.map (\k->realToFrac $ fst $ params V.! k) assignments)
 
 -- | Maximum likelihood classification
-classify :: Params -> Sample -> ComponentIdx
+classify :: ComponentParams -> Sample -> ComponentIdx
 classify params x =
   fst
   $ V.maximumBy (compare `on` \(_,(w,p))->realToFrac w * betaProb p x)
