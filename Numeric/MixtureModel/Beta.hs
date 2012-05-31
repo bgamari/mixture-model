@@ -28,6 +28,7 @@ module Numeric.MixtureModel.Beta ( -- * General data types
 import           Data.Function (on)       
 import qualified Data.Vector as V
 import qualified Data.Vector.Mutable as MV
+import           Control.Monad.ST       
 
 import           Data.Number.LogFloat hiding (realToFrac, isInfinite)
 import           Numeric.SpecFunctions (logBeta)
@@ -98,13 +99,17 @@ drawAssignment params x =
         otherwise -> categorical
                      $ map (\(p,k)->(realToFrac $ p / sum probs :: Double, k))
                      $ zip probs [0..]
+
+countIndices :: Int -> V.Vector Int -> V.Vector Int
+countIndices n v = runST $ do
+    accum <- V.thaw $ V.replicate n 0
+    V.forM_ v $ \k -> MV.read accum k >>= (MV.write accum k . (+1))
+    V.freeze accum
   
 -- | Estimate the component weights of a given set of parameters
 estimateWeights :: Assignments -> BetaParams -> ComponentParams
 estimateWeights assignments params =
-  let counts = V.foldl' (\accum k -> V.modify (\v->MV.read v k >>= (MV.write v k . (+1))) accum)
-                        (V.map (const 0) params)
-                        assignments
+  let counts = countIndices (V.length params) assignments
       norm = realToFrac $ V.length assignments
       weights = V.map (\n->realToFrac n / norm) counts
   in V.zip weights params
