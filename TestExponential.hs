@@ -1,6 +1,6 @@
 import Data.Number.LogFloat                
 import Data.Random.Lift
-import qualified Data.Vector as V                
+import qualified Data.Vector.Unboxed as V                
 import Control.Applicative                
 import Control.Arrow (first, second)                
 import Control.Monad                
@@ -45,7 +45,7 @@ main = do
         let params = estimateWeights a' $ paramsFromAssignments samples 2 a'
         lift $ print (params, logFromLogFloat $ likelihood samples params a' :: Double)
         return a'
-  assignments <- sampleFrom mwc $ replicateM' 100 f assignments0
+  assignments <- sampleFrom mwc $ replicateM' 20 f assignments0
   let params = estimateWeights assignments
                $ paramsFromAssignments samples 2 assignments
   print $ V.length $ V.filter not $ V.zipWith (==) assignments (V.map fst test)
