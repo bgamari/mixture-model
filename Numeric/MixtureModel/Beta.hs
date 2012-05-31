@@ -103,7 +103,8 @@ drawAssignment params x =
 countIndices :: Int -> V.Vector Int -> V.Vector Int
 countIndices n v = runST $ do
     accum <- V.thaw $ V.replicate n 0
-    V.forM_ v $ \k -> MV.read accum k >>= (MV.write accum k . (+1))
+    V.forM_ v $ \k -> do n' <- MV.read accum k
+                         MV.write accum k $! n'+1
     V.freeze accum
   
 -- | Estimate the component weights of a given set of parameters
