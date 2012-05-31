@@ -102,9 +102,9 @@ drawAssignment params x =
 -- | Estimate the component weights of a given set of parameters
 estimateWeights :: Assignments -> BetaParams -> ComponentParams
 estimateWeights assignments params =
-  let counts = V.foldl (\accum k -> V.modify (\v->MV.read v k >>= (MV.write v k . (+1))) accum)
-                       (V.map (const 0) params)
-                       assignments
+  let counts = V.foldl' (\accum k -> V.modify (\v->MV.read v k >>= (MV.write v k . (+1))) accum)
+                        (V.map (const 0) params)
+                        assignments
       norm = realToFrac $ V.length assignments
       weights = V.map (\n->realToFrac n / norm) counts
   in V.zip weights params
