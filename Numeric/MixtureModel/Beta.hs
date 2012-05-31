@@ -26,11 +26,12 @@ module Numeric.MixtureModel.Beta ( -- * General data types
                                  ) where
                               
 import           Data.Function (on)       
-import qualified Data.Vector as V
-import qualified Data.Vector.Mutable as MV
+import qualified Data.Vector.Unboxed as V
+import qualified Data.Vector.Unboxed.Mutable as MV
 import           Control.Monad.ST       
 
 import           Data.Number.LogFloat hiding (realToFrac, isInfinite)
+import           Data.Number.LogFloat.Vector
 import           Numeric.SpecFunctions (logBeta)
 import           Statistics.Sample (meanVarianceUnb)
        
