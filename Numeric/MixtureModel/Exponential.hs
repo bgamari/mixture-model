@@ -14,6 +14,7 @@ module Numeric.MixtureModel.Exponential ( -- * General data types
                                         -- * Exponential distribution
                                         , Prob
                                         , prob
+                                        , tauMean, tauVariance
                                         -- * Gibbs sampling
                                         , estimateWeights
                                         , updateAssignments
@@ -35,8 +36,9 @@ import           Data.Number.LogFloat.Vector
 import           Numeric.SpecFunctions (logBeta)
 import           Statistics.Sample (mean)
 import           Numeric.Newton                 
+import           Math.Gamma (gamma)                 
        
-import           Data.Random                 
+import           Data.Random hiding (gamma) 
 import           Data.Random.Distribution.Categorical
        
 type Prob = LogFloat       
@@ -65,6 +67,16 @@ prob (StretchedExp lambda 1) tau = prob (Exp lambda) tau
 prob (StretchedExp lambda beta) tau =
     logToLogFloat $ log beta + (beta-1) * log tau + beta * log lambda - (tau * lambda)**beta
 prob (Exp lambda) tau = logToLogFloat $ log lambda - lambda * tau
+
+-- | Mean of the given distribution
+tauMean :: Exponential -> Double
+tauMean (Exp lambda) = 1 / lambda
+tauMean (StretchedExp lambda beta) = gamma (1/beta) / beta / lambda
+
+-- | Variance of the given distribution
+tauVariance :: Exponential -> Double
+tauVariance (Exp lambda) = 1/lambda^2
+tauVariance (StretchedExp lambda beta) = 2 * gamma (2/beta) / lambda^2 / beta            
 
 -- | Exponential parameter from samples
 paramFromSamples :: Exponential -> V.Vector Sample -> Exponential
