@@ -16,9 +16,9 @@ cabal-version:       >=1.8
 
 library
   exposed-modules:     Numeric.MixtureModel.Beta, Numeric.MixtureModel.Exponential
-  build-depends:       base ==4.5.*, vector ==0.9.*, statistics ==0.10.*, math-functions ==0.1.*, repa ==3.1.*, logfloat, logfloat-unboxed, primitive, random-fu
+  build-depends:       base ==4.5.*, vector ==0.9.*, statistics ==0.10.*, math-functions ==0.1.*, repa ==3.1.*, logfloat, logfloat-unboxed, primitive, random-fu, vector-algorithms
   
 executable test-exponential
   main-is:             TestExponential.hs
-  build-depends:       base ==4.5.*, vector ==0.9.*, statistics ==0.10.*, math-functions ==0.1.*, logfloat, logfloat-unboxed, primitive, random-fu, mwc-random
+  build-depends:       base ==4.5.*, vector ==0.9.*, statistics ==0.10.*, math-functions ==0.1.*, logfloat, logfloat-unboxed, primitive, random-fu, vector-algorithms, mwc-random
   
