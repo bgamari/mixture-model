@@ -51,6 +51,7 @@ type Rate = Double -- | The rate parameter
 type Beta = Double -- | The stretching parameter
 data Exponential = Exp Rate
                  | StretchedExp Rate Beta
+                 | FixedExp Rate Beta
                  deriving (Show, Read, Eq)
                  
 -- k refers to number of components
@@ -63,6 +64,8 @@ type ComponentParams = VB.Vector (Weight, Exponential)  -- length == K
 -- distribution defined by rate `lambda`
 prob :: Exponential -> Sample -> Prob
 prob _ tau | tau < 0 = error "Exponential distribution undefined for tau<0"
+prob (FixedExp lambda 1) tau = prob (Exp lambda) tau
+prob (FixedExp lambda beta) tau = prob (StretchedExp lambda beta) tau
 prob (StretchedExp lambda 1) tau = prob (Exp lambda) tau
 prob (StretchedExp lambda beta) tau =
     logToLogFloat $ log beta + (beta-1) * log tau + beta * log lambda - (tau * lambda)**beta
@@ -72,14 +75,17 @@ prob (Exp lambda) tau = logToLogFloat $ log lambda - lambda * tau
 tauMean :: Exponential -> Double
 tauMean (Exp lambda) = 1 / lambda
 tauMean (StretchedExp lambda beta) = gamma (1/beta) / beta / lambda
+tauMean (FixedExp lambda beta) = tauMean (StretchedExp lambda beta)
 
 -- | Variance of the given distribution
 tauVariance :: Exponential -> Double
 tauVariance (Exp lambda) = 1/lambda^2
 tauVariance (StretchedExp lambda beta) = 2 * gamma (2/beta) / lambda^2 / beta            
+tauVariance (FixedExp lambda beta) = tauVariance (StretchedExp lambda beta)
 
 -- | Exponential parameter from samples
 paramFromSamples :: Exponential -> V.Vector Sample -> Exponential
+paramFromSamples (FixedExp lambda beta) _ = FixedExp lambda beta             
 paramFromSamples _ v | V.null v = error "Can't estimate parameters from no samples"
 paramFromSamples (Exp _) v = Exp $ 1 / mean v
 paramFromSamples (StretchedExp _ _) v =
