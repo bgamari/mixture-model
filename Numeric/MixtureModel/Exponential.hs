@@ -143,10 +143,11 @@ updateAssignments samples params =
 -- | Likelihood of samples assignments under given model parameters
 likelihood :: Samples -> ComponentParams -> Assignments -> Prob
 likelihood samples params assignments =
-    V.product ( V.map (\(k,x)->prob (snd $ params VB.! k) x)
-              $ V.zip assignments samples
-              )
-  * V.product (V.map (\k->realToFrac $ fst $ params VB.! k) assignments)
+    V.product
+    $ V.map (\(k,x)->let (w,p) = params VB.! k
+                     in realToFrac w * prob p x
+            )
+    $ V.zip assignments samples
 
 -- | Maximum likelihood classification
 classify :: ComponentParams -> Sample -> ComponentIdx
