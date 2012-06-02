@@ -51,7 +51,7 @@ type Rate = Double -- | The rate parameter
 type Beta = Double -- | The stretching parameter
 data Exponential = Exp Rate
                  | StretchedExp Rate Beta
-                 deriving (Show, Eq)
+                 deriving (Show, Read, Eq)
                  
 -- k refers to number of components
 -- N refers to number of samples
