@@ -49,7 +49,10 @@ main = do
       f (params, a) = do
         a' <- lift $ updateAssignments samples params
         let params' = estimateWeights a' $ paramsFromAssignments samples (VB.map snd params) a'
-        lift $ print (params', logFromLogFloat $ likelihood samples params' a' :: Double)
+        lift $ print ( params'
+                     , logFromLogFloat
+                       $ scoreAssignments samples params' a' :: Double
+                     )
         return (params', a')
   (params, assignments) <- sampleFrom mwc $ replicateM' 20 f (initial, assignments0)
   print $ V.length $ V.filter not $ V.zipWith (==) assignments (V.map fst test)
