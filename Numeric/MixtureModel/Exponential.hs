@@ -18,8 +18,8 @@ module Numeric.MixtureModel.Exponential ( -- * General data types
                                         -- * Gibbs sampling
                                         , estimateWeights
                                         , updateAssignments
-                                        -- * Likelihood
-                                        , likelihood
+                                        -- * Score
+                                        , scoreAssignments
                                         -- * Classification
                                         , classify
                                         ) where
@@ -140,12 +140,12 @@ updateAssignments :: Samples -> ComponentParams -> RVar Assignments
 updateAssignments samples params =
   V.mapM (drawAssignment params) samples
 
--- | "Likelihood" of samples assignments under given model
+-- | "Likelihood" of sample assignments under given model
 -- parameters. Note that the exponential distribution is a density
 -- function and as such this will give an unnormalized result unless
 -- multiplied by dtau^N
-likelihood :: Samples -> ComponentParams -> Assignments -> Prob
-likelihood samples params assignments =
+scoreAssignments :: Samples -> ComponentParams -> Assignments -> Prob
+scoreAssignments samples params assignments =
     V.product
     $ V.map (\(k,x)->let (w,p) = params VB.! k
                      in realToFrac w * prob p x
