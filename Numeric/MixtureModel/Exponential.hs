@@ -24,23 +24,23 @@ module Numeric.MixtureModel.Exponential ( -- * General data types
                                         , classify
                                         ) where
                               
-import           Data.Function (on)       
+import           Control.Monad.ST
+import           Data.Function (on)
 import qualified Data.Vector as VB
+import           Data.Vector.Algorithms.Heap
 import qualified Data.Vector.Mutable as MV
 import qualified Data.Vector.Unboxed as V
-import           Data.Vector.Algorithms.Heap       
-import           Control.Monad.ST       
 
 import           Data.Number.LogFloat hiding (realToFrac, isInfinite, log)
 import           Data.Number.LogFloat.Vector
 import           Numeric.SpecFunctions (logBeta)
 import           Statistics.Sample (mean)
-import           Numeric.Newton                 
-import           Math.Gamma (gamma)                 
+import           Numeric.Newton
+import           Math.Gamma (gamma)
        
-import           Data.Random hiding (gamma) 
+import           Data.Random hiding (gamma)
 import           Data.Random.Distribution.Categorical
-       
+                 
 type Prob = LogFloat       
 type Sample = Double
 type SampleIdx = Int     
@@ -140,7 +140,10 @@ updateAssignments :: Samples -> ComponentParams -> RVar Assignments
 updateAssignments samples params =
   V.mapM (drawAssignment params) samples
 
--- | Likelihood of samples assignments under given model parameters
+-- | "Likelihood" of samples assignments under given model
+-- parameters. Note that the exponential distribution is a density
+-- function and as such this will give an unnormalized result unless
+-- multiplied by dtau^N
 likelihood :: Samples -> ComponentParams -> Assignments -> Prob
 likelihood samples params assignments =
     V.product
