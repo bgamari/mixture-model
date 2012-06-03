@@ -20,6 +20,7 @@ module Numeric.MixtureModel.Exponential ( -- * General data types
                                         , updateAssignments
                                         -- * Score
                                         , scoreAssignments
+                                        , maxLikelihoodScore
                                         -- * Classification
                                         , classify
                                         ) where
@@ -164,4 +165,10 @@ classify params x =
   fst
   $ VB.maximumBy (compare `on` \(_,(w,p))->realToFrac w * prob p x)
   $ VB.indexed params
+
+-- | Score of the maximum likelihood assignment for a set of samples
+maxLikelihoodScore :: ComponentParams -> Samples -> Prob
+maxLikelihoodScore params samples = 
+  let assignments = V.map (classify params) samples
+  in scoreAssignments samples params assignments
 
