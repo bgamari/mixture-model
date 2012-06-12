@@ -1,0 +1,43 @@
+\documentclass{article}
+\usepackage{amsmath}
+\newcommand{\mean}[1]{\ensuremath{\langle #1 \rangle}}
+\title{Notes on the Stretched Exponential Distribution}
+\author{Ben Gamari}
+\begin{document}
+\section{Notes on the Stretched Exponential Distribution}
+
+The power exponential distribution is given by,
+
+\[ p(\tau \mid \lambda, \beta) d\tau
+   = \beta \tau^{\beta-1} \lambda^{\beta} e^{-(\tau \lambda)^\beta} d\tau\]
+
+Note that with $\beta = 1$ we recover the exponential distribution. as
+$\beta \rightarrow 2$ this approaches the normal distribution with
+$\mean{\tau} = 0$, $\mean{\tau^2} = ?$. The case where $\beta < 1$ is
+known as a stretched exponential.
+
+The first and second moments of this distribution are given by,
+
+\begin{align*}
+  \mean{\tau} & = \lambda^{-1} \beta^{-1} \Gamma(\beta^{-1}) \\
+  \mean{\tau^2} & = 2 \lambda^{-2} \beta^{-1} \Gamma(2\beta^{-1})  \\
+\end{align*}
+
+The maximum likelihood estimator for the $\lambda$ parameter given $\beta$ is,
+\[ \hat \lambda^\beta = \frac{1}{N} \sum_{i=1}^N (\tau_i^\beta - \tau_N^\beta) \]
+Where $\tau_1 > \tau_2 > ... > \tau_N$ are the $N$ largest observed samples.
+
+The maximum likelihood estimator for $\beta$ is,
+\[
+  \hat\beta^{-1} = \frac{\sum_{i=1}^N (\tau_i^\beta \ln\tau_i -  \tau_N^\beta \ln\tau_N)}
+                       {\sum_{i=1}^N (\tau_i^\beta - \tau_N^\beta)}
+                  - \frac{1}{N} \sum_{i=1}^N \ln\tau_i
+\]
+Being an implicit function, one must generally solve for $\beta$ by numerical means.
+
+\subsection{References}
+\begin{itemize}
+\item D. Sornette. \it{Critical Phenomena in Natural Sciences: Chaos, Fractals, Selforganization and Disorder} 
+\end{itemize}
+
+\end{document}
