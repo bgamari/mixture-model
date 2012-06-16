@@ -87,7 +87,7 @@ tauVariance (FixedExp lambda beta) = tauVariance (StretchedExp lambda beta)
 -- | Exponential parameter from samples
 paramFromSamples :: Exponential -> V.Vector Sample -> Exponential
 paramFromSamples (FixedExp lambda beta) _ = FixedExp lambda beta             
-paramFromSamples _ v | V.null v = error "Can't estimate parameters from no samples"
+paramFromSamples _ v | V.null v = error "Can't estimate parameters without samples"
 paramFromSamples (Exp _) v = Exp $ 1 / mean v
 paramFromSamples (StretchedExp _ _) v =
     let v' = runST $ do a <- V.thaw v
