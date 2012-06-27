@@ -89,16 +89,22 @@ paramFromSamples :: Exponential -> V.Vector Sample -> Exponential
 paramFromSamples (FixedExp lambda beta) _ = FixedExp lambda beta             
 paramFromSamples _ v | V.null v = error "Can't estimate parameters without samples"
 paramFromSamples (Exp _) v = Exp $ 1 / mean v
-paramFromSamples (StretchedExp _ _) v =
+paramFromSamples (StretchedExp _ betaOld) v =
     let v' = runST $ do a <- V.thaw v
                         sort a
                         V.freeze a
         n = realToFrac $ V.length v'
         tn = V.head v'
         s beta = V.sum $ V.map (\t->t**beta - tn**beta) v'
-        betaOpt beta = let num = V.sum $ V.map (\t->t**beta * log t - tn**beta * log tn) v'
+        betaOpt beta = let num = V.sum (V.map (\t->t**beta * log t) v') - n*tn**beta*log tn
                        in num / s beta - V.sum (V.map log v') / n - 1 / beta
-        beta' = findRoot 1e-5 betaOpt (numericalDeriv 1e-5 betaOpt 1e-2) 0.5
+        betaOpt' beta = let denom = V.sum (V.map (**beta) v') - n*tn**beta
+                            num1 = V.sum (V.map (\t->t**beta * log t) v')
+                                   - n*tn**beta * log tn
+                            num2 = V.sum (V.map (\t->t**beta * (log t)^2) v')
+                                   - n*tn**beta * (log tn)^2
+                        in 1/beta^2 - (num1/denom)^2 + num2/denom
+        beta' = findRoot 1e-5 betaOpt betaOpt' betaOld
         lambda' = (s beta' / n)**(-1/beta')
     in StretchedExp lambda' beta'
 
