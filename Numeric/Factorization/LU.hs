@@ -7,10 +7,7 @@ import           GHC.TypeLits
 import           Linear
 import           Linear.V
 import qualified Data.Vector as V
-import qualified Data.Vector.Mutable as MV
-
 import           Data.Maybe
-import           Debug.Trace as T
 
 -- | @a `idx` (i,j)@ is the element of @a@ from row @i@, column @j@
 idx :: V n (V m a) -> (Int, Int) -> a
@@ -34,7 +31,7 @@ generateMatrix n f =
 --
 -- Doolittle's decomposition yields a factorization with upper
 -- unittriangular matrix @U@ and general lower triangular matrix @L@
-doolittle :: (Dim k, Epsilon a, Fractional a, SingI k, Show a)
+doolittle :: (Dim k, Epsilon a, Fractional a, SingI k)
           => V (k::Nat) (V k a) -> Maybe (V k (V k a), V k (V k a))
 doolittle a
     | V.any nearZero $ toVector $ diagonal a = Nothing
@@ -69,7 +66,7 @@ doolittle a
 --
 -- Crout's decomposition yields a factorization with upper
 -- unittriangular matrix @U@ and general lower triangular matrix @L@
-crout :: (Dim k, Epsilon a, Fractional a, SingI k, Show a)
+crout :: (Dim k, Epsilon a, Fractional a, SingI k)
       => V (k::Nat) (V k a) -> Maybe (V k (V k a), V k (V k a))
 crout a
     | V.any nearZero $ toVector $ diagonal a = Nothing
