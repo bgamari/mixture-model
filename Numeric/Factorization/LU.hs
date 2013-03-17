@@ -104,7 +104,7 @@ partialPivot :: V (k::Nat) (V k a) -> V k (V k a)
 partialPivot = undefined
 
 croutDet :: (Fractional a, SingI k, Epsilon a) => V (k::Nat) (V k a) -> Maybe a
-croutDet = fmap (V.product . toVector . diagonal . snd) . crout
+croutDet = fmap (V.product . toVector . diagonal . fst) . crout
 
 doolittleDet :: (Fractional a, SingI k, Epsilon a) => V (k::Nat) (V k a) -> Maybe a
-doolittleDet = fmap (V.product . toVector . diagonal . fst) . doolittle
+doolittleDet = fmap (V.product . toVector . diagonal . snd) . doolittle
