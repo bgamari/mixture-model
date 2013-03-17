@@ -1,6 +1,9 @@
 {-# LANGUAGE KindSignatures, RankNTypes, PolyKinds, DataKinds #-}
 
-module Numeric.Factorization.LU ( doolittle, crout ) where
+module Numeric.Factorization.LU
+    ( doolittle, doolittleDet
+    , crout, croutDet
+    ) where
 
 import           Control.Applicative
 import           GHC.TypeLits
@@ -99,3 +102,9 @@ crout a
 
 partialPivot :: V (k::Nat) (V k a) -> V k (V k a)
 partialPivot = undefined
+
+croutDet :: (Fractional a, SingI k, Epsilon a) => V (k::Nat) (V k a) -> Maybe a
+croutDet = fmap (V.product . toVector . diagonal . snd) . crout
+
+doolittleDet :: (Fractional a, SingI k, Epsilon a) => V (k::Nat) (V k a) -> Maybe a
+doolittleDet = fmap (V.product . toVector . diagonal . fst) . doolittle
