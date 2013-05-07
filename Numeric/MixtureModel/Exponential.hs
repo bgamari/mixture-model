@@ -32,8 +32,8 @@ import           Data.Vector.Algorithms.Heap
 import qualified Data.Vector.Mutable as MV
 import qualified Data.Vector.Unboxed as V
 
-import           Data.Number.LogFloat hiding (realToFrac, isInfinite, log)
-import           Data.Number.LogFloat.Vector
+import           Numeric.Log hiding (Exp, sum)
+import qualified Numeric.Log as Log
 import           Numeric.SpecFunctions (logBeta)
 import           Statistics.Sample (mean)
 import           Numeric.Newton
@@ -42,7 +42,7 @@ import           Math.Gamma (gamma)
 import           Data.Random hiding (gamma)
 import           Data.Random.Distribution.Categorical
                  
-type Prob = LogFloat       
+type Prob = Log Double       
 type Sample = Double
 type SampleIdx = Int     
 type ComponentIdx = Int     
@@ -69,8 +69,8 @@ prob (FixedExp lambda 1) tau = prob (Exp lambda) tau
 prob (FixedExp lambda beta) tau = prob (StretchedExp lambda beta) tau
 prob (StretchedExp lambda 1) tau = prob (Exp lambda) tau
 prob (StretchedExp lambda beta) tau =
-    logToLogFloat $ log beta + (beta-1) * log tau + beta * log lambda - (tau * lambda)**beta
-prob (Exp lambda) tau = logToLogFloat $ log lambda - lambda * tau
+    Log.Exp $ log beta + (beta-1) * log tau + beta * log lambda - (tau * lambda)**beta
+prob (Exp lambda) tau = Log.Exp $ log lambda - lambda * tau
 
 -- | Mean of the given distribution
 tauMean :: Exponential -> Double
@@ -95,7 +95,7 @@ paramFromSamples (StretchedExp _ betaOld) v =
                         V.freeze a
         n = realToFrac $ V.length v'
         tn = V.head v'
-        s beta = V.sum $ V.map (\t->t**beta - tn**beta) v'
+        s beta = V.sum (V.map (\t->t**beta) v') - n*tn**beta
         betaOpt beta = let num = V.sum (V.map (\t->t**beta * log t) v') - n*tn**beta*log tn
                        in num / s beta - V.sum (V.map log v') / n - 1 / beta
         betaOpt' beta = let denom = V.sum (V.map (**beta) v') - n*tn**beta
@@ -124,9 +124,7 @@ paramsFromAssignments samples params assignments =
 drawAssignment :: ComponentParams -> Sample -> RVar ComponentIdx
 drawAssignment params x =
   let probs = map (\(w,p)->realToFrac w * prob p x) $ VB.toList params
-      lfIsInfinite :: LogFloat -> Bool
-      lfIsInfinite = isInfinite . (fromLogFloat :: LogFloat -> Double)
-  in case filter (lfIsInfinite . fst) $ zip probs [0..] of
+  in case filter (isInfinite . ln . fst) $ zip probs [0..] of
         (x:_)     -> return $ snd x
         otherwise -> categorical
                      $ map (\(p,k)->(realToFrac $ p / sum probs :: Double, k))

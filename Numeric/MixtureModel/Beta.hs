@@ -30,15 +30,14 @@ import qualified Data.Vector.Unboxed as V
 import qualified Data.Vector.Unboxed.Mutable as MV
 import           Control.Monad.ST       
 
-import           Data.Number.LogFloat hiding (realToFrac, isInfinite)
-import           Data.Number.LogFloat.Vector
+import           Numeric.Log hiding (sum)
 import           Numeric.SpecFunctions (logBeta)
 import           Statistics.Sample (meanVarianceUnb)
        
 import           Data.Random                 
 import           Data.Random.Distribution.Categorical
        
-type Prob = LogFloat       
+type Prob = Log Double       
 type Sample = Double
 type SampleIdx = Int     
 type ComponentIdx = Int     
@@ -52,13 +51,13 @@ type Assignments = V.Vector ComponentIdx               -- length == N
 type BetaParams = V.Vector BetaParam                   -- length == K     
 type ComponentParams = V.Vector (Weight, BetaParam)      -- length == K     
       
-beta :: Double -> Double -> LogFloat
-beta a b = logToLogFloat $ logBeta a b
+beta :: Double -> Double -> Log Double
+beta a b = Exp $ logBeta a b
 
 -- | `betaProb (a,b) x` is the probability of `x` under Beta
 -- distribution defined by parameters `a` and `b`
 betaProb :: BetaParam -> Sample -> Prob
-betaProb (a,b) x = 1/beta a b * logFloat (x**(a-1)) * logFloat ((1-x)**(b-1))
+betaProb (a,b) x = 1/beta a b * realToFrac (x**(a-1)) * realToFrac ((1-x)**(b-1))
 
 -- | Beta parameter from sample mean and variance
 paramFromMoments :: (Double, Double) -> BetaParam
@@ -93,9 +92,7 @@ paramsFromAssignments samples ncomps assignments =
 drawAssignment :: ComponentParams -> Sample -> RVar ComponentIdx
 drawAssignment params x =
   let probs = map (\(w,p)->realToFrac w * betaProb p x) $ V.toList params
-      lfIsInfinite :: LogFloat -> Bool
-      lfIsInfinite = isInfinite . (fromLogFloat :: LogFloat -> Double)
-  in case filter (lfIsInfinite . fst) $ zip probs [0..] of
+  in case filter (isInfinite . ln . fst) $ zip probs [0..] of
         (x:_)     -> return $ snd x
         otherwise -> categorical
                      $ map (\(p,k)->(realToFrac $ p / sum probs :: Double, k))

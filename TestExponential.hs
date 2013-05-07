@@ -1,4 +1,4 @@
-import Data.Number.LogFloat                
+import Numeric.Log hiding (Exp)
 import Data.Random.Lift
 import qualified Data.Vector as VB
 import qualified Data.Vector.Unboxed as V                
@@ -50,8 +50,7 @@ main = do
         a' <- lift $ updateAssignments samples params
         let params' = estimateWeights a' $ paramsFromAssignments samples (VB.map snd params) a'
         lift $ print ( params'
-                     , logFromLogFloat
-                       $ scoreAssignments samples params' a' :: Double
+                     , ln $ scoreAssignments samples params' a'
                      )
         return (params', a')
   (params, assignments) <- sampleFrom mwc $ replicateM' 20 f (initial, assignments0)
