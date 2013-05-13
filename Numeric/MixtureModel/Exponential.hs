@@ -48,8 +48,8 @@ type SampleIdx = Int
 type ComponentIdx = Int     
 type Weight = Double     
 
-type Rate = Double -- | The rate parameter
-type Beta = Double -- | The stretching parameter
+type Rate = Double -- ^ The rate parameter
+type Beta = Double -- ^ The stretching parameter
 data Exponential = Exp Rate
                  | StretchedExp Rate Beta
                  | FixedExp Rate Beta
