@@ -12,6 +12,7 @@ module Numeric.MixtureModel.Beta ( -- * General data types
                                  , paramFromMoments
                                  , paramToMoments
                                  , paramsFromAssignments
+                                 , paramToMode
                                  -- * Beta distribution
                                  , Prob
                                  , betaProb
@@ -73,6 +74,10 @@ paramToMoments (a,b) =
       var  = a*b / (a+b)^2 / (a+b+1)
   in (mean, var)
          
+-- | The mode of the given beta parameter
+paramToMode :: BetaParam -> Double
+paramToMode (a,b) = (a - 1) / (a + b - 2)
+
 -- | Beta parameter from samples
 paramFromSamples :: V.Vector Sample -> BetaParam
 paramFromSamples v | V.null v = error "Can't estimate priors from no samples"
