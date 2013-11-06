@@ -17,7 +17,7 @@ cabal-version:       >=1.8
 library
   exposed-modules:     Numeric.MixtureModel.Beta, Numeric.MixtureModel.Exponential
   other-modules:       Numeric.Newton
-  build-depends:       base >=4.5 && <4.7,
+  build-depends:       base >=4.5 && <4.8,
                        vector >=0.9 && <0.11,
                        statistics >=0.10 && < 1.0,
                        math-functions >=0.1 && <1.0,
@@ -30,7 +30,7 @@ library
   
 executable test-exponential
   main-is:             TestExponential.hs
-  build-depends:       base >=4.5 && <4.7,
+  build-depends:       base >=4.5 && <4.8,
                        vector >= 0.9 && <0.11,
                        statistics >=0.10 && < 1.0,
                        math-functions >=0.1 && <1.0,
