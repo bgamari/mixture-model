@@ -15,6 +15,7 @@ module Numeric.MixtureModel.Exponential ( -- * General data types
                                         , Prob
                                         , prob
                                         , tauMean, tauVariance
+                                        , modelProb
                                         -- * Gibbs sampling
                                         , estimateWeights
                                         , updateAssignments
@@ -71,6 +72,11 @@ prob (StretchedExp lambda 1) tau = prob (Exp lambda) tau
 prob (StretchedExp lambda beta) tau =
     Log.Exp $ log beta + (beta-1) * log tau + beta * log lambda - (tau * lambda)**beta
 prob (Exp lambda) tau = Log.Exp $ log lambda - lambda * tau
+
+-- | Probability of a sample under a mixture 
+modelProb :: ComponentParams -> Sample -> Prob
+modelProb _ tau | tau < 0 = error "Exponential distribution undefined for tau<0"
+modelProb model tau = VB.sum $ VB.map (\(w,e)->prob e tau) model
 
 -- | Mean of the given distribution
 tauMean :: Exponential -> Double
