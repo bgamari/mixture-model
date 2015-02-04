@@ -25,66 +25,75 @@ module Numeric.MixtureModel.Beta ( -- * General data types
                                  -- * Classification
                                  , classify
                                  ) where
-                              
-import           Data.Function (on)       
-import qualified Data.Vector.Unboxed as V
+
+import           Data.Function (on)
+import qualified Data.Vector as VB
+import qualified Data.Vector.Generic as V
+import qualified Data.Vector.Unboxed as VU
 import qualified Data.Vector.Unboxed.Mutable as MV
-import           Control.Monad.ST       
+import           Control.Monad.ST
 
 import           Numeric.Log hiding (sum)
 import           Numeric.SpecFunctions (logBeta)
 import           Statistics.Sample (meanVarianceUnb)
-       
-import           Data.Random                 
+
+import           Data.Random
 import           Data.Random.Distribution.Categorical
-       
-type Prob = Log Double       
+
+type Prob = Log Double
 type Sample = Double
-type SampleIdx = Int     
-type ComponentIdx = Int     
-type Weight = Double     
-type BetaParam = (Double, Double)
+type SampleIdx = Int
+type ComponentIdx = Int
+type Weight = Double
+data BetaParam = BetaParam Double -- ^ Alpha
+                           Double -- ^ Beta
 
 -- k refers to number of components
 -- N refers to number of samples
-type Samples = V.Vector Sample                         -- length == N
-type Assignments = V.Vector ComponentIdx               -- length == N
-type BetaParams = V.Vector BetaParam                   -- length == K     
-type ComponentParams = V.Vector (Weight, BetaParam)      -- length == K     
-      
+type Samples = VU.Vector Sample                         -- length == N
+type Assignments = VU.Vector ComponentIdx               -- length == N
+type BetaParams = VB.Vector BetaParam                   -- length == K
+type ComponentParams = VB.Vector (Weight, BetaParam)    -- length == K
+
 beta :: Double -> Double -> Log Double
 beta a b = Exp $ logBeta a b
 
 -- | `betaProb (a,b) x` is the probability of `x` under Beta
 -- distribution defined by parameters `a` and `b`
 betaProb :: BetaParam -> Sample -> Prob
-betaProb (a,b) x = 1/beta a b * realToFrac (x**(a-1)) * realToFrac ((1-x)**(b-1))
+betaProb (BetaParam a b) x =
+    1/beta a b * realToFrac (x**(a-1)) * realToFrac ((1-x)**(b-1))
 
 -- | Beta parameter from sample mean and variance
-paramFromMoments :: (Double, Double) -> BetaParam
-paramFromMoments (xbar,v) 
-  | c < 0      = error "Not a beta distribution"
-  | otherwise  = (xbar * c, (1 - xbar) * c)
+paramFromMoments :: Double            -- ^ mean
+                 -> Double            -- ^ variance
+                 -> Maybe BetaParam
+paramFromMoments xbar v
+  | c < 0      = Nothing
+  | otherwise  = Just $ BetaParam (xbar * c) ((1 - xbar) * c)
   where c = xbar * (1 - xbar) / v - 1
-  
+
 -- | Mean and variance of the given beta parameter
 paramToMoments :: BetaParam -> (Double, Double)
-paramToMoments (a,b) =
+paramToMoments (BetaParam a b) =
   let mean = a / (a+b)
       var  = a*b / (a+b)^2 / (a+b+1)
   in (mean, var)
-         
+
 -- | The mode of the given beta parameter
 paramToMode :: BetaParam -> Double
-paramToMode (a,b) = (a - 1) / (a + b - 2)
+paramToMode (BetaParam a b) = (a - 1) / (a + b - 2)
 
 -- | Beta parameter from samples
-paramFromSamples :: V.Vector Sample -> BetaParam
-paramFromSamples v | V.null v = error "Can't estimate priors from no samples"
-paramFromSamples v = paramFromMoments $ meanVarianceUnb v
+paramFromSamples :: VU.Vector Sample -> BetaParam
+paramFromSamples v | V.null v = error "Numeric.MixtureModel.Beta: Can't estimate priors from no samples"
+paramFromSamples v =
+    case uncurry paramFromMoments $ meanVarianceUnb v of
+      Just a  -> a
+      Nothing -> error "Numeric.MixtureModel.Beta: Somehow we have a negative variance"
 
 -- | Beta parameter for component given samples and their component assignments
-paramFromAssignments :: Samples -> Assignments -> ComponentIdx -> BetaParam         
+paramFromAssignments :: Samples -> Assignments -> ComponentIdx -> BetaParam
 paramFromAssignments samples assignments k =
   paramFromSamples $ V.map snd $ V.filter (\(k',_)->k==k') $ V.zip assignments samples
 
@@ -103,20 +112,20 @@ drawAssignment params x =
                      $ map (\(p,k)->(realToFrac $ p / sum probs :: Double, k))
                      $ zip probs [0..]
 
-countIndices :: Int -> V.Vector Int -> V.Vector Int
+countIndices :: Int -> VU.Vector Int -> VU.Vector Int
 countIndices n v = runST $ do
-    accum <- V.thaw $ V.replicate n 0
+    accum <- V.thaw $ VU.replicate n 0
     V.forM_ v $ \k -> do n' <- MV.read accum k
                          MV.write accum k $! n'+1
     V.freeze accum
-  
+
 -- | Estimate the component weights of a given set of parameters
 estimateWeights :: Assignments -> BetaParams -> ComponentParams
 estimateWeights assignments params =
   let counts = countIndices (V.length params) assignments
       norm = realToFrac $ V.length assignments
       weights = V.map (\n->realToFrac n / norm) counts
-  in V.zip weights params
+  in V.zip (V.convert weights) params
 
 -- | Sample assignments for samples under given parameters
 updateAssignments' :: Samples -> ComponentParams -> RVar Assignments
@@ -126,8 +135,8 @@ updateAssignments' samples params =
 -- | Gibbs update of sample assignments
 updateAssignments :: Samples -> Int -> Assignments -> RVar Assignments
 updateAssignments samples ncomps assignments =
-  updateAssignments' samples 
-  $ estimateWeights assignments 
+  updateAssignments' samples
+  $ estimateWeights assignments
   $ paramsFromAssignments samples ncomps assignments
 
 -- | Likelihood of samples assignments under given model parameters
@@ -144,4 +153,3 @@ classify params x =
   fst
   $ V.maximumBy (compare `on` \(_,(w,p))->realToFrac w * betaProb p x)
   $ V.indexed params
-
