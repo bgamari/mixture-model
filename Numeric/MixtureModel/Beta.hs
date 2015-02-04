@@ -6,7 +6,7 @@ module Numeric.MixtureModel.Beta ( -- * General data types
                                  , Assignments
                                  , Weight
                                  -- * Beta parameters
-                                 , BetaParam
+                                 , BetaParam (..)
                                  , BetaParams
                                  , ComponentParams
                                  , paramFromMoments
