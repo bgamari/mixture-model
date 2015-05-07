@@ -45,8 +45,8 @@ type Sample = Double
 type SampleIdx = Int
 type ComponentIdx = Int
 type Weight = Double
-data BetaParam = BetaParam Double -- ^ Alpha
-                           Double -- ^ Beta
+data BetaParam = BetaParam !Double -- ^ Alpha
+                           !Double -- ^ Beta
                deriving (Show, Eq, Ord)
 
 -- k refers to number of components
